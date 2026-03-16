@@ -1,0 +1,30 @@
+{
+  "name": "health-trend-automation",
+  "version": "1.0.0",
+  "description": "Daily automation to hunt global health trends and create viral scripts",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dashboard": "node dashboard/server.js",
+    "crawl": "node crawlers/runAll.js",
+    "generate": "node scripts/generateScripts.js",
+    "report": "node reports/generateDailyReport.js",
+    "full-run": "node index.js full",
+    "schedule": "node scheduler/dailyScheduler.js",
+    "docker:build": "docker build -t health-trend-automation .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:shell": "docker-compose exec health-trend-automation sh"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.3.1",
+    "express": "^4.22.1",
+    "node-schedule": "^2.1.1",
+    "openai": "^4.77.0",
+    "sql.js": "^1.10.0",
+    "uuid": "^9.0.0"
+  }
+}

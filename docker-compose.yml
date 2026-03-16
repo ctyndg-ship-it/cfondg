@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  health-trend-automation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: health-trend-automation
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./database/data:/app/database/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+      - ./reports/output:/app/reports/output
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Ho_Chi_Minh
+    networks:
+      - health-trend-net
+
+networks:
+  health-trend-net:
+    driver: bridge

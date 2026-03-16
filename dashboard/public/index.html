@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealthHunter - AI Health Trend Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg-primary: #0a0b14;
+      --bg-secondary: #12131d;
+      --bg-card: #1a1c2e;
+      --bg-card-hover: #22243a;
+      --accent: #00d4aa;
+      --accent-glow: #00ffcc;
+      --accent-dim: rgba(0, 212, 170, 0.15);
+      --accent-gold: #f5a623;
+      --text: #ffffff;
+      --text-secondary: #8b8fa3;
+      --text-muted: #5c6078;
+      --border: rgba(255,255,255,0.08);
+      --border-light: rgba(255,255,255,0.12);
+      --glass: rgba(255,255,255,0.03);
+    }
+    
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* Animated Background */
+    .bg-gradient {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background: 
+        radial-gradient(ellipse 80% 50% at 20% -20%, rgba(0,212,170,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(120,80,255,0.1) 0%, transparent 50%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(245,166,35,0.05) 0%, transparent 50%);
+    }
+    
+    .bg-grid {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%);
+    }
+    
+    .floating {
+      position: fixed;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      animation: float 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    .floating-1 { top: 10%; left: 10%; background: var(--accent); animation-delay: 0s; }
+    .floating-2 { bottom: 20%; right: 10%; background: #7850ff; animation-delay: -7s; }
+    .floating-3 { top: 50%; left: 60%; background: var(--accent-gold); animation-delay: -14s; }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.05); }
+      66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+    
+    /* Glass Effect */
+    .glass {
+      background: rgba(18, 19, 29, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+    }
+    
+    .glass-card {
+      background: linear-gradient(135deg, rgba(26,28,46,0.9), rgba(18,19,29,0.8));
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .glass-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent-dim);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 60px rgba(0,212,170,0.1);
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 260px;
+      height: 100vh;
+      padding: 24px 16px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      margin-bottom: 40px;
+    }
+    
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #00d4aa 0%, #00ffcc 50%, #7850ff 100%);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 
+        0 4px 20px rgba(0,212,170,0.4),
+        0 0 40px rgba(0,212,170,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+      transform: perspective(200px) rotateY(-5deg) rotateX(5deg);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .logo-icon::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(135deg, #00d4aa, #7850ff);
+      border-radius: 16px;
+      z-index: -1;
+      opacity: 0.5;
+      filter: blur(10px);
+      animation: logoPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes logoPulse {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.05); }
+    }
+    
+    .logo:hover .logo-icon {
+      transform: perspective(200px) rotateY(0deg) rotateX(0deg) scale(1.05);
+      box-shadow: 
+        0 8px 30px rgba(0,212,170,0.5),
+        0 0 60px rgba(0,212,170,0.3);
+    }
+    
+    .logo-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 0%, #00d4aa 50%, #7850ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 30px rgba(0,212,170,0.3);
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      margin-bottom: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .nav-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-dim), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .nav-item:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.03);
+    }
+    
+    .nav-item:hover::before {
+      opacity: 1;
+    }
+    
+    .nav-item.active {
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+    
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 24px;
+      background: var(--accent);
+      border-radius: 0 4px 4px 0;
+    }
+    
+    .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .nav-badge {
+      margin-left: auto;
+      background: rgba(255,255,255,0.08);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    
+    /* Main Content */
+    .main {
+      margin-left: 260px;
+      padding: 32px 40px;
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+    
+    .header-title h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    
+    .header-date {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    
+    /* Run Button */
+    .run-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      background: linear-gradient(135deg, var(--accent), #00ffcc);
+      border: none;
+      border-radius: 14px;
+      color: #0a0b14;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      box-shadow: 0 4px 20px rgba(0,212,170,0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .run-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+    
+    .run-btn:hover::before {
+      left: 100%;
+    }
+    
+    .run-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,212,170,0.5);
+    }
+    
+    .run-btn:active {
+      transform: translateY(0);
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    
+    .stat-card {
+      padding: 24px;
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    }
+    
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+    
+    .stat-icon.green { background: rgba(0,212,170,0.15); }
+    .stat-icon.blue { background: rgba(79,108,253,0.15); }
+    .stat-icon.purple { background: rgba(139,92,246,0.15); }
+    .stat-icon.orange { background: rgba(245,166,35,0.15); }
+    
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    
+    /* Section */
+    .section {
+      padding: 24px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    /* Filter Buttons */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    
+    .filter-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--border-light);
+      color: var(--text);
+    }
+    
+    .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a0b14;
+    }
+    
+    /* Table */
+    .data-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    
+    .data-table th {
+      text-align: left;
+      padding: 14px 16px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .data-table td {
+      padding: 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    
+    .data-table tr:hover td {
+      background: rgba(255,255,255,0.02);
+    }
+    
+    .topic-cell a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    
+    .topic-cell a:hover {
+      color: var(--accent);
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .badge-reddit { background: rgba(255,100,0,0.15); color: #ff6400; }
+    .badge-news { background: rgba(79,108,253,0.15); color: #4f6cfd; }
+    
+    .score-cell {
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    /* Scripts Grid */
+    .scripts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 16px;
+    }
+    
+    .script-card {
+      padding: 20px;
+      border-radius: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .script-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(0,212,170,0.3);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 40px rgba(0,212,170,0.05);
+    }
+    
+    .script-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    
+    .script-topic {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--accent);
+      line-height: 1.4;
+      flex: 1;
+      padding-right: 12px;
+    }
+    
+    .script-actions {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .script-btn {
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .script-btn:hover {
+      background: rgba(0,212,170,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    .script-preview {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 12px;
+      max-height: 80px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .script-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: linear-gradient(transparent, rgba(26,28,46,0.9));
+    }
+    
+    .script-preview.expanded {
+      max-height: none;
+    }
+    
+    .script-preview.expanded::after {
+      display: none;
+    }
+    
+    .script-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(0,212,170,0.15);
+      color: var(--accent);
+    }
+    
+    .script-date {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-right: 8px;
+    }
+    
+    /* Date Group */
+    .date-group {
+      margin-bottom: 24px;
+    }
+    
+    .date-group-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .date-group-title::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent);
+    }
+    
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 24px;
+      padding: 16px;
+    }
+    
+    .page-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .page-btn:hover:not(:disabled) {
+      background: rgba(0,212,170,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    .page-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a0b14;
+    }
+    
+    .page-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    
+    /* Search */
+    .search-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .search-bar input, .search-bar select {
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .search-bar input {
+      flex: 1;
+    }
+    
+    .search-bar input:focus, .search-bar select:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(0,212,170,0.05);
+    }
+    
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #00ffcc);
+      color: #0a0b14;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,212,170,0.3);
+    }
+    
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--border-light);
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+      animation: fadeIn 0.2s ease;
+    }
+    
+    .modal-overlay.hidden { display: none; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      width: 90%;
+      max-width: 520px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal h2 {
+      font-size: 20px;
+      margin-bottom: 24px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .form-group textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+    
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(0,212,170,0.05);
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 16px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      border-radius: 14px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 2000;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    /* Loading */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(10,11,20,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      backdrop-filter: blur(10px);
+    }
+    
+    .loading-overlay.hidden { display: none; }
+    
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .hidden { display: none !important; }
+    
+    @media (max-width: 1200px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div class="bg-grid"></div>
+  <div class="floating floating-1"></div>
+  <div class="floating floating-2"></div>
+  <div class="floating floating-3"></div>
+
+  <div class="app">
+    <div class="sidebar glass">
+      <nav>
+        <div class="nav-section-title" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;padding:12px;margin-bottom:8px">Overview</div>
+        <div class="nav-item active" data-page="dashboard"><span class="nav-icon">◉</span> Dashboard</div>
+        
+        <div class="nav-section-title" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;padding:12px;margin-bottom:8px;margin-top:16px">Data</div>
+        <div class="nav-item" data-page="trends"><span class="nav-icon">◎</span> Trends<span class="nav-badge" id="trendCount">0</span></div>
+        <div class="nav-item" data-page="scripts"><span class="nav-icon">✎</span> Scripts<span class="nav-badge" id="scriptCount">0</span></div>
+        
+        <div class="nav-section-title" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;padding:12px;margin-bottom:8px;margin-top:16px">Output</div>
+        <div class="nav-item" data-page="reports"><span class="nav-icon">☰</span> Reports</div>
+      </nav>
+    </div>
+    
+    <div class="main">
+      <div class="header">
+        <div class="header-title">
+          <h1 id="pageTitle">Dashboard</h1>
+          <div class="header-date" id="currentDate"></div>
+          <div class="header-date" id="lastCrawl" style="color: var(--accent); margin-top: 4px;"></div>
+        </div>
+        <button class="run-btn" id="runBtn" onclick="runFull()">
+          <span>↻</span> Run Automation
+        </button>
+      </div>
+      
+      <div id="dashboardPage">
+        <div class="stats-grid">
+          <div class="stat-card glass-card">
+            <div class="stat-icon green">↑</div>
+            <div class="stat-value" id="totalTrends">0</div>
+            <div class="stat-label">Total Trends</div>
+          </div>
+          <div class="stat-card glass-card">
+            <div class="stat-icon blue">✓</div>
+            <div class="stat-value" id="realTrends">0</div>
+            <div class="stat-label">Verified Sources</div>
+          </div>
+          <div class="stat-card glass-card">
+            <div class="stat-icon purple">✎</div>
+            <div class="stat-value" id="totalScripts">0</div>
+            <div class="stat-label">Scripts Generated</div>
+          </div>
+          <div class="stat-card glass-card">
+            <div class="stat-icon orange">☰</div>
+            <div class="stat-value" id="totalReports">0</div>
+            <div class="stat-label">Reports</div>
+          </div>
+        </div>
+        
+        <div class="section glass-card">
+          <div class="section-header">
+            <span class="section-title">🔥 Trending Now</span>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Topic</th><th>Source</th><th>Score</th></tr></thead>
+              <tbody id="hotTrendsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <div id="trendsPage" class="hidden">
+        <div class="section glass-card">
+          <div class="section-header">
+            <span class="section-title">All Trends</span>
+            <div class="filter-bar" id="sourceFilters"></div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Topic</th><th>Source</th><th>Eng.</th><th>Growth</th><th>Total</th></tr></thead>
+              <tbody id="trendsTable"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="trendsPagination"></div>
+        </div>
+      </div>
+      
+      <div id="scriptsPage" class="hidden">
+        <div class="section glass-card">
+          <div class="section-header">
+            <span class="section-title">📝 Video Scripts</span>
+            <button class="btn btn-primary" onclick="showCreateModal()">+ New Script</button>
+          </div>
+          <div class="search-bar" id="scriptsSearchBar" style="margin-bottom:20px">
+            <input type="text" id="searchInput" placeholder="Tìm kiếm scripts..." style="flex:1">
+            <select id="statusFilter">
+              <option value="all">Tất cả</option>
+              <option value="generated">Generated</option>
+              <option value="draft">Draft</option>
+            </select>
+            <button class="btn btn-primary" onclick="exportScripts()">Export</button>
+          </div>
+          <div id="scriptsList"></div>
+        </div>
+      </div>
+      
+      <div id="reportsPage" class="hidden">
+        <div class="section glass-card">
+          <div class="section-header">
+            <span class="section-title">📄 Executive Reports</span>
+            <button class="btn btn-primary" onclick="generateReport()">Generate</button>
+          </div>
+          <div id="reportsList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="toast" id="toast"></div>
+  <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
+  
+  <div class="modal-overlay hidden" id="createModal">
+    <div class="modal">
+      <h2>Create New Script</h2>
+      <div class="form-group"><label>Topic</label><input type="text" id="newTopic" placeholder="Enter topic..."></div>
+      <div class="form-group"><label>Content</label><textarea id="newScript" placeholder="Enter script content..."></textarea></div>
+      <div class="form-group"><label>Hashtags</label><input type="text" id="newHashtags" placeholder="#health #fitness..."></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="hideCreateModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="createScript()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentPage = 'dashboard', currentSource = 'all';
+    let scriptCurrentPage = 1;
+    let filteredScripts = [];
+    const ITEMS_PER_PAGE = 15;
+    
+    function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+    function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+    
+    function switchPage(page) {
+      currentPage = page;
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelector('[data-page="' + page + '"]').classList.add('active');
+      document.getElementById('dashboardPage').classList.toggle('hidden', page !== 'dashboard');
+      document.getElementById('trendsPage').classList.toggle('hidden', page !== 'trends');
+      document.getElementById('scriptsPage').classList.toggle('hidden', page !== 'scripts');
+      document.getElementById('reportsPage').classList.toggle('hidden', page !== 'reports');
+      document.getElementById('pageTitle').textContent = {dashboard:'Dashboard',trends:'Trends',scripts:'Scripts',reports:'Reports'}[page];
+      document.getElementById('runBtn').style.display = page === 'dashboard' ? 'flex' : 'none';
+      if (page === 'trends') loadTrends();
+      if (page === 'scripts') { scriptCurrentPage = 1; loadScripts(); }
+      if (page === 'reports') loadReports();
+    }
+    
+    document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => switchPage(item.dataset.page)));
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('runBtn').style.display = 'flex';
+    
+    document.getElementById('searchInput').addEventListener('input', filterScripts);
+    document.getElementById('statusFilter').addEventListener('change', filterScripts);
+    
+    let trendsData = [];
+    let trendsCurrentPage = 1;
+    const TRENDS_PER_PAGE = 20;
+    
+    async function loadStats() {
+      const data = await fetch('/api/stats').then(r => r.json());
+      document.getElementById('totalTrends').textContent = data.totalTrends || 0;
+      document.getElementById('realTrends').textContent = data.realTrends || 0;
+      document.getElementById('totalScripts').textContent = data.totalScripts || 0;
+      document.getElementById('totalReports').textContent = data.totalReports || 0;
+      document.getElementById('trendCount').textContent = data.totalTrends || 0;
+      document.getElementById('scriptCount').textContent = data.totalScripts || 0;
+      
+      if (data.lastRun) {
+        const d = new Date(data.lastRun);
+        document.getElementById('lastCrawl').textContent = '🕐 Cập nhật: ' + d.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      } else if (data.lastCrawl) {
+        const d = new Date(data.lastCrawl);
+        document.getElementById('lastCrawl').textContent = '🕐 Cập nhật: ' + d.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      }
+      
+      let html = '';
+      if (data.hotTopics?.length) {
+        html = data.hotTopics.slice(0, 7).map(t => {
+          const name = t.topic_name?.length > 50 ? t.topic_name.slice(0,50)+'...' : t.topic_name;
+          const badge = t.source === 'reddit' ? 'badge-reddit' : 'badge-news';
+          return `<tr><td class="topic-cell"><a href="${t.source_url||'#'}" target="_blank">${name}</a></td><td><span class="badge ${badge}">${t.source}</span></td><td class="score-cell">${Math.round(t.engagement_score)}</td></tr>`;
+        }).join('');
+      }
+      document.getElementById('hotTrendsTable').innerHTML = html || '<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text-muted)">No data available</td></tr>';
+    }
+    
+    async function loadSources() {
+      const sources = await fetch('/api/sources').then(r => r.json());
+      const real = sources.filter(s => ['news','reddit'].includes(s.source));
+      const total = real.reduce((a,b) => a+b.cnt, 0);
+      const all = [{source:'all',cnt:total},...real].map(s => `<button class="filter-btn ${s.source===currentSource?'active':''}" data-source="${s.source}">${s.source==='all'?'All':s.source} (${s.cnt})</button>`).join('');
+      document.getElementById('sourceFilters').innerHTML = all;
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => { 
+        currentSource = btn.dataset.source; 
+        trendsCurrentPage = 1;
+        loadTrends(); 
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
+        btn.classList.add('active'); 
+      }));
+    }
+    
+    async function loadTrends() {
+      trendsData = await fetch('/api/trends'+(currentSource!=='all'?'?source='+currentSource:'')).then(r => r.json());
+      renderTrends();
+    }
+    
+    function renderTrends() {
+      const start = (trendsCurrentPage - 1) * TRENDS_PER_PAGE;
+      const end = start + TRENDS_PER_PAGE;
+      const pageTrends = trendsData.slice(start, end);
+      
+      let html = pageTrends.length ? pageTrends.map(t => {
+        const name = t.topic_name?.length > 65 ? t.topic_name.slice(0,65)+'...' : t.topic_name;
+        const badge = t.source === 'reddit' ? 'badge-reddit' : 'badge-news';
+        return `<tr><td class="topic-cell"><a href="${t.source_url||'#'}" target="_blank">${name}</a></td><td><span class="badge ${badge}">${t.source}</span></td><td>${Math.round(t.engagement_score)}</td><td>${Math.round(t.growth_rate)}%</td><td class="score-cell">${Math.round(t.engagement_score+t.growth_rate)}</td></tr>`;
+      }).join('') : '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">No data</td></tr>';
+      document.getElementById('trendsTable').innerHTML = html;
+      
+      const totalPages = Math.ceil(trendsData.length / TRENDS_PER_PAGE);
+      let paginationHtml = '';
+      if (totalPages > 1) {
+        paginationHtml += `<button class="page-btn" onclick="goToTrendsPage(${trendsCurrentPage - 1})" ${trendsCurrentPage === 1 ? 'disabled' : ''}>‹</button>`;
+        for (let i = 1; i <= totalPages; i++) {
+          if (i === 1 || i === totalPages || (i >= trendsCurrentPage - 1 && i <= trendsCurrentPage + 1)) {
+            paginationHtml += `<button class="page-btn ${i === trendsCurrentPage ? 'active' : ''}" onclick="goToTrendsPage(${i})">${i}</button>`;
+          } else if (i === trendsCurrentPage - 2 || i === trendsCurrentPage + 2) {
+            paginationHtml += `<span style="color:var(--text-muted)">...</span>`;
+          }
+        }
+        paginationHtml += `<button class="page-btn" onclick="goToTrendsPage(${trendsCurrentPage + 1})" ${trendsCurrentPage === totalPages ? 'disabled' : ''}>›</button>`;
+      }
+      document.getElementById('trendsPagination').innerHTML = paginationHtml;
+    }
+    
+    function goToTrendsPage(page) {
+      const totalPages = Math.ceil(trendsData.length / TRENDS_PER_PAGE);
+      if (page < 1 || page > totalPages) return;
+      trendsCurrentPage = page;
+      renderTrends();
+    }
+    
+    async function loadScripts() {
+      window.allScripts = await fetch('/api/scripts?limit=500').then(r => r.json());
+      filterScripts();
+    }
+    
+    function filterScripts() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const st = document.getElementById('statusFilter').value;
+      filteredScripts = window.allScripts.filter(s => {
+        const matchQ = (s.topic_name || '').toLowerCase().includes(q) || (s.full_script || '').toLowerCase().includes(q);
+        const matchSt = st === 'all' || (s.status || 'generated') === st;
+        return matchQ && matchSt;
+      });
+      scriptCurrentPage = 1;
+      renderScriptsGrouped();
+    }
+    
+    function getDateGroupName(created) {
+      if (!created) return 'Unknown';
+      const d = new Date(created);
+      const now = new Date();
+      const diff = now - d;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      
+      if (days === 0) return 'Hôm nay';
+      if (days === 1) return 'Hôm qua';
+      if (days < 7) return 'Tuần này';
+      if (days < 30) return 'Tháng này';
+      return d.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' });
+    }
+    
+    function renderScriptsGrouped() {
+      if (!filteredScripts.length) { 
+        document.getElementById('scriptsList').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No scripts</div>'; 
+        return; 
+      }
+      
+      const start = (scriptCurrentPage - 1) * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      const pageScripts = filteredScripts.slice(start, end);
+      
+      const groups = {};
+      pageScripts.forEach(s => {
+        const g = getDateGroupName(s.created);
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(s);
+      });
+      
+      let html = '';
+      Object.keys(groups).forEach(groupName => {
+        html += `<div class="date-group"><div class="date-group-title">${groupName}</div><div class="scripts-grid">`;
+        html += groups[groupName].map((s, idx) => {
+          const globalIdx = start + idx;
+          const preview = (s.full_script || '');
+          const isExpanded = document.getElementById('preview-' + globalIdx)?.classList.contains('expanded');
+          return `<div class="script-card">
+            <div class="script-header">
+              <div class="script-topic">${(s.topic_name || 'Untitled').slice(0, 55)}</div>
+              <div class="script-actions">
+                <button class="script-btn" onclick="copyScript(${globalIdx})">Copy</button>
+                <button class="script-btn" onclick="deleteScript(${s.id})">Del</button>
+              </div>
+            </div>
+            <div class="script-preview ${isExpanded ? 'expanded' : ''}" id="preview-${globalIdx}">${preview.slice(0, 180)}${isExpanded ? '' : '...'}</div>
+            <div class="script-meta">
+              <div><span class="status-badge">${s.status || 'generated'}</span></div>
+              <button class="script-btn" onclick="togglePreview(${globalIdx})">${isExpanded ? 'Collapse' : 'Expand'}</button>
+            </div>
+          </div>`;
+        }).join('');
+        html += '</div></div>';
+      });
+      
+      const totalPages = Math.ceil(filteredScripts.length / ITEMS_PER_PAGE);
+      if (totalPages > 1) {
+        html += `<div class="pagination">`;
+        html += `<button class="page-btn" onclick="goToPage(${scriptCurrentPage - 1})" ${scriptCurrentPage === 1 ? 'disabled' : ''}>‹</button>`;
+        for (let i = 1; i <= totalPages; i++) {
+          if (i === 1 || i === totalPages || (i >= scriptCurrentPage - 1 && i <= scriptCurrentPage + 1)) {
+            html += `<button class="page-btn ${i === scriptCurrentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+          } else if (i === scriptCurrentPage - 2 || i === scriptCurrentPage + 2) {
+            html += `<span style="color:var(--text-muted)">...</span>`;
+          }
+        }
+        html += `<button class="page-btn" onclick="goToPage(${scriptCurrentPage + 1})" ${scriptCurrentPage === totalPages ? 'disabled' : ''}>›</button>`;
+        html += `</div>`;
+      }
+      
+      document.getElementById('scriptsList').innerHTML = html;
+    }
+    
+    function goToPage(page) {
+      const totalPages = Math.ceil(filteredScripts.length / ITEMS_PER_PAGE);
+      if (page < 1 || page > totalPages) return;
+      scriptCurrentPage = page;
+      renderScriptsGrouped();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    function togglePreview(idx) {
+      const el = document.getElementById('preview-' + idx);
+      if (el) {
+        el.classList.toggle('expanded');
+        const btn = el.parentElement.querySelector('.script-meta .script-btn');
+        if (btn) btn.textContent = el.classList.contains('expanded') ? 'Collapse' : 'Expand';
+      }
+    }
+    
+    function copyScript(idx) {
+      navigator.clipboard.writeText(filteredScripts[idx]?.full_script || '').then(() => showToast('Copied!'));
+    }
+    
+    function deleteScript(id) {
+      if (!confirm('Delete this script?')) return;
+      fetch('/api/scripts/' + id, { method: 'DELETE' }).then(r => r.json()).then(d => {
+        if (d.success) { showToast('Deleted!'); loadScripts(); }
+        else showToast('Error');
+      });
+    }
+    
+    function exportScripts() {
+      const t = filteredScripts.map(s => `=== ${s.topic_name || ''} ===\n\n${s.full_script}\n\n${s.hashtags || ''}`).join('\n---\n\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain' }));
+      a.download = 'scripts.txt';
+      a.click();
+      showToast('Exported!');
+    }
+    
+    async function loadReports() {
+      const reports = await fetch('/api/reports').then(r => r.json());
+      
+      const byDate = {};
+      reports.forEach(r => {
+        const date = r.name.match(/report_(\d{4}-\d{2}-\d{2})/);
+        const dateKey = date ? date[1] : 'unknown';
+        if (!byDate[dateKey]) byDate[dateKey] = { docx: null, html: null };
+        if (r.type === 'docx') byDate[dateKey].docx = r;
+        else if (r.type === 'html') byDate[dateKey].html = r;
+      });
+      
+      let html = Object.keys(byDate).length ? '<div class="scripts-grid">' + Object.keys(byDate).sort().reverse().map(date => {
+        const r = byDate[date];
+        const displayDate = new Date(date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        let buttons = '';
+        if (r.docx) {
+          buttons += `<button class="btn btn-primary" onclick="window.open('/api/reports/${r.docx.name}','_blank')" style="margin-right:8px">📥 Download DOCX</button>`;
+        }
+        if (r.html) {
+          buttons += `<button class="btn btn-secondary" onclick="window.open('/api/reports/${r.html.name}','_blank')">👁️ View HTML</button>`;
+        }
+        return `<div class="script-card" style="padding:24px"><div class="script-header"><div class="script-topic" style="font-size:18px">📊 Báo cáo ngày ${displayDate}</div></div><div style="margin-top:12px;color:var(--text-secondary);font-size:13px">${r.docx ? '📄 DOCX - ' + Math.round(r.docx.size/1024) + 'KB' : ''}${r.docx && r.html ? ' | ' : ''}${r.html ? '🌐 HTML - ' + Math.round(r.html.size/1024) + 'KB' : ''}</div><div style="margin-top:16px">${buttons}</div></div>`;
+      }).join('') + '</div>' : '<div style="text-align:center;padding:40px;color:var(--text-muted)">No reports</div>';
+      document.getElementById('reportsList').innerHTML = html;
+    }
+    
+    function showCreateModal() { document.getElementById('createModal').classList.remove('hidden'); }
+    function hideCreateModal() { document.getElementById('createModal').classList.add('hidden'); }
+    function createScript() {
+      const topic = document.getElementById('newTopic').value, script = document.getElementById('newScript').value, tags = document.getElementById('newHashtags').value;
+      if (!topic || !script) { showToast('Fill all fields'); return; }
+      fetch('/api/scripts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic_name: topic, full_script: script, hashtags: tags }) }).then(r => r.json()).then(d => {
+        if (d.success) { showToast('Created!'); hideCreateModal(); loadScripts(); ['newTopic', 'newScript', 'newHashtags'].forEach(i => document.getElementById(i).value = ''); }
+        else showToast('Error');
+      });
+    }
+    
+    async function runFull() {
+      const btn = document.getElementById('runBtn');
+      btn.disabled = true; btn.innerHTML = '↻ Running...';
+      showLoading();
+      const now = new Date();
+      document.getElementById('lastCrawl').textContent = '🕐 Đang chạy: ' + now.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      try { 
+        const d = await fetch('/api/run-full', { method: 'POST' }).then(r => r.json()); 
+        if (d.success) {
+          showToast('Automation completed!');
+          loadData();
+          const endTime = new Date();
+          document.getElementById('lastCrawl').textContent = '🕐 Cập nhật: ' + endTime.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        } else showToast('Error: ' + d.error); 
+      } catch (e) { showToast('Error'); }
+      hideLoading(); btn.disabled = false; btn.innerHTML = '↻ Run Automation';
+    }
+    function generateReport() { fetch('/api/generate-report', { method: 'POST' }).then(r => r.json()).then(d => { if (d.success) { showToast('Report generated!'); loadReports(); } else showToast('Error'); }); }
+    function loadData() { loadStats(); loadSources(); loadTrends(); loadReports(); }
+    loadData();
+    setInterval(loadData, 30000);
+  </script>
+</body>
+</html>

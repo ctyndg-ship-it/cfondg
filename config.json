@@ -1,0 +1,59 @@
+{
+  "system": {
+    "logLevel": "info",
+    "scheduleTime": "0 6 * * *",
+    "autoRun": true,
+    "maxTrendsPerDay": 50,
+    "maxScriptsPerDay": 10
+  },
+  "crawler": {
+    "sources": [
+      "google_trends",
+      "reddit",
+      "tiktok",
+      "twitter",
+      "news"
+    ],
+    "minEngagementScore": 30,
+    "languages": [
+      "en"
+    ],
+    "categories": [
+      "health",
+      "fitness",
+      "nutrition",
+      "mental_health"
+    ]
+  },
+  "script": {
+    "useAI": true,
+    "aiModel": "gpt-4o-mini",
+    "defaultDuration": 30,
+    "tone": "aggressive",
+    "maxRetries": 3
+  },
+  "video": {
+    "defaultPlatform": "tiktok",
+    "voiceId": "rachel",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "aspectRatio": "9:16"
+  },
+  "storage": {
+    "keepTrendsDays": 90,
+    "keepScriptsDays": 30,
+    "keepVideosDays": 14,
+    "autoBackup": true,
+    "backupIntervalHours": 24
+  },
+  "notifications": {
+    "enabled": true,
+    "telegram": {
+      "botToken": "8749505101:AAGI45XHj0GO9D3WQj-EjjHnFcpRhBwmOXw",
+      "chatId": "1998102989"
+    },
+    "discord": {
+      "webhookUrl": ""
+    }
+  }
+}
