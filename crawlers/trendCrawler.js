@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { run, all, get, initDB, saveDB } = require('../database/db');
+const { getTikTokTrends } = require('./tiktokCrawler');
 
 const CONFIG = {
   healthKeywords: [
@@ -707,15 +708,16 @@ function saveTrends(allTrends) {
 async function runAllCrawlers() {
   await initDB();
   console.log('\n🚀 === STARTING REAL DATA CRAWL ===\n');
-  console.log('⚠️ Active sources: Reddit, News, Google Trends only\n');
+  console.log('⚠️ Active sources: Reddit, News, Google Trends, TikTok\n');
 
-  const [reddit, news, googleTrends] = await Promise.all([
+  const [reddit, news, googleTrends, tiktok] = await Promise.all([
     crawlReddit(),
     crawlNews(),
-    crawlGoogleTrends()
+    crawlGoogleTrends(),
+    getTikTokTrends()
   ]);
 
-  const allTrends = [...reddit, ...news, ...googleTrends];
+  const allTrends = [...reddit, ...news, ...googleTrends, ...tiktok];
 
   const uniqueTrends = allTrends.reduce((acc, trend) => {
     const exists = acc.find(t => t.topic_name.toLowerCase() === trend.topic_name.toLowerCase());
@@ -732,6 +734,7 @@ async function runAllCrawlers() {
   console.log(`   - Reddit: ${reddit.length} (REAL)`);
   console.log(`   - News: ${news.length} (REAL)`);
   console.log(`   - Google Trends: ${googleTrends.length} (REAL)`);
+  console.log(`   - TikTok: ${tiktok.length} (REAL)`);
 
   return uniqueTrends;
 }
