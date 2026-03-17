@@ -2,16 +2,31 @@ const schedule = require('node-schedule');
 const { initDB, run } = require('../database/db');
 const { runAllCrawlers } = require('../crawlers/trendCrawler');
 const { generateAllScripts } = require('../scripts/scriptGenerator');
-const { generateDailyReport, exportReportDocx } = require('../reports/dailyReport');
+const { generateDailyReport } = require('../reports/dailyReport');
 const { sendTelegramReport } = require('../utils/notifications');
 
 const SCHEDULE_TIMES = ['0 6 * * *', '0 12 * * *', '0 18 * * *'];
+const CLEANUP_DAYS = 7;
+
+function autoCleanup() {
+  const cutoffDate = new Date(Date.now() - CLEANUP_DAYS * 86400000).toISOString().split('T')[0];
+  console.log(`\n🧹 Auto-cleanup: Removing data before ${cutoffDate}\n`);
+  
+  run(`DELETE FROM trends WHERE collected_date < ?`, [cutoffDate]);
+  run(`DELETE FROM scripts WHERE date(generated_at) < ?`, [cutoffDate]);
+  
+  console.log('✅ Auto-cleanup completed');
+}
 
 async function runFullAutomation() {
   console.log('\n🚀 === FULL AUTOMATION STARTED ===\n');
 
   try {
     await initDB();
+    
+    // Auto cleanup old data
+    autoCleanup();
+    
     const now = new Date().toISOString();
     run(`INSERT OR REPLACE INTO settings (key, value) VALUES ('last_run', ?)`, [now]);
     run(`INSERT OR REPLACE INTO settings (key, value) VALUES ('last_crawl', ?)`, [now]);
@@ -19,7 +34,6 @@ async function runFullAutomation() {
     await runAllCrawlers();
     await generateAllScripts(50, false);
     generateDailyReport();
-    exportReportDocx();
     
     await sendTelegramReport();
 
@@ -32,6 +46,13 @@ async function runFullAutomation() {
 }
 
 function scheduleDailyAutomation() {
+  const autoRun = process.env.AUTO_RUN !== 'false';
+  
+  if (!autoRun) {
+    console.log('\n📅 Auto-scheduler DISABLED (AUTO_RUN=false)\n');
+    return;
+  }
+  
   console.log(`\n📅 Scheduling daily automation at: ${SCHEDULE_TIMES.join(', ')}\n`);
 
   const jobs = [];

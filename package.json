@@ -18,12 +18,15 @@
     "docker:shell": "docker-compose exec health-trend-automation sh"
   },
   "dependencies": {
+    "apify-client": "^2.22.2",
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
+    "docx": "^9.6.1",
     "dotenv": "^16.3.1",
     "express": "^4.22.1",
     "node-schedule": "^2.1.1",
     "openai": "^4.77.0",
+    "playwright": "^1.58.2",
     "sql.js": "^1.10.0",
     "uuid": "^9.0.0"
   }

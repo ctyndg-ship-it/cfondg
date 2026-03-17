@@ -1,43 +1,67 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const { run, all, get, initDB } = require('../database/db');
 const axios = require('axios');
 
 const STYLE_GUIDE = {
-  name: 'Aggressive Vulgar Health',
-  tone: 'aggressive, confrontational, dark humor, unapologetic, edgy',
-  keywords: ['bitch-ass', 'dumb-ass', 'fuck', 'fat ass', 'motherfucker', 'shit', ' goddamn', 'soggy', 'useless beef jerky', 'bitch', 'dumbass'],
-  structure: 'Hook -> Problem -> Solution/Information -> CTA',
+  name: 'DrKiller - Aggressive Vulgar Health',
+  tone: 'aggressive, confrontational, dark humor, unapologetic, edgy, sarcastic, uses heavy profanity',
+  keywords: ['bitch-ass', 'dumb-ass', 'fuck', 'fat ass', 'motherfucker', 'shit', ' goddamn', 'soggy', 'useless', 'bitch', 'dumbass', 'shitty', 'pussy', 'lucky', 'cringy', 'freak', 'pissed', 'bullshit', 'ass', 'horny', 'cum', 'balls', 'dick', 'pussy', 'retarded', 'mongoloid', 'mongol'],
+  structure: 'HOOK (shocking question) → EXPLANATION (dark humor) → DETAILS (facts) → WHAT TO DO → DISCLAIMER → CTA',
   cta_pattern: 'Follow me for more about your [fucked up/malfunctioning/broken-ass] body.',
-  forbidden_words: ['delve', 'unleash', 'comprehensive', 'embark', 'journey', 'transformative', 'revolutionary', 'leverage', 'optimize', 'seamless'],
-  word_count: '200-250 words for short-form video'
+  forbidden_words: ['delve', 'unleash', 'comprehensive', 'embark', 'journey', 'transformative', 'revolutionary', 'leverage', 'optimize', 'seamless', 'utilize', 'facilitate'],
+  word_count: '280-350 words for short-form video'
 };
 
-const AI_PROMPT = `You are a responsible health content creator with medical ethics. Write a short-form video script in English (280-350 words) for TikTok/Reels/Shorts.
+const REFERENCE_SCRIPTS = `
+LEARN FROM THESE 10 VIRAL TIKTOK SCRIPTS - COPY THEIR STYLE EXACTLY:
 
-⚠️ CRITICAL RULES - MUST FOLLOW:
-1. Stay 100% FOCUSED on ONE specific health topic only
-2. ONLY state facts you are CONFIDENT are scientifically accurate
-3. When unsure, say "research suggests" or "some studies indicate" - never state unverified claims as facts
-4. Always include disclaimer: "Consult your doctor for personalized advice"
-5. NEVER make up statistics, dosages, or medical claims
+1. "What does vaping do to your bitch-ass body? You thought it was just flavored fucking air, mango mist and blueberry bullshit, right? That little stick of death is pumping nicotine straight into your bloodstream, clenching your arteries like a damn vise grip and slowly turning your heart into soggy, useless beef jerky. Fast forward, you're in a hospital bed, tubes in your arms, oxygen jammed up your nose, you can't move, you can't breathe. Dr. Walks in and says, your heart's working at 3% bitch, beside the fucking nicotine addiction, lung irritation, and increased anxiety. Your heart could end up fucked. Is vaping better than smoking cigarettes? Who the fuck knows at this point? But I wouldn't press my fucking luck until more studies are conducted."
 
-STRUCTURE (MUST FOLLOW - Total 60-90 seconds when read):
-1. HOOK (5-8 seconds): One shocking fact or question about [topic] - grab attention immediately
-2. EXPLAIN (25-35 seconds): What it is, key facts, who it affects - stay on ONE point
-3. SIGNS/SYMPTOMS (15-20 seconds): 3-5 specific warning signs people should watch for
-4. WHAT TO DO (15-20 seconds): 2-3 evidence-based recommendations with caveats
-5. DISCLAIMER (3-5 seconds): "This is for educational purposes. Talk to your doctor."
-6. CTA (5 seconds): "Follow for more science-based health info"
+2. "How the fuck does an inhaler work? When you're fucking lungs start acting like two pieces of shit, an inhaler blasts pressurized medicine, usually albuterol, straight down your throat into those bitch ass airways that decided to clamp shut like a scared fucking turtle. The god damn albuterol binds to beta-2 receptors on the muscles wrapped around your bronchial tubes and tells them to chill the fuck out. And boom, those tight airways open up so you can get a nice fat fucking breath of fresh air again."
+
+3. "What the fuck is sleep apnea? Sleep apnea is when your dumbass throat collapses like a folding chair. The second you fall asleep — while you're awake, your throat muscles hold the piece-of-shit airway open; But when you fall asleep, the throat muscles pass out too — letting that shit close up tighter than your ex's fucking heart. Air barely squeezes through, making your soft palate vibrate like a dying lawnmower. That's snoring."
+
+4. "What the actual fuck happens when you walk for an hour? After two minutes blood circulation kicks in, heart rate goes up, and your body is praying that you're about to exercise. By five minutes, your mood lifts noticeably, thanks to a hit of endorphins, telling your brain your pathetic ass isn't getting up to eat. At 30 minutes, your huge body switches gears and starts burning stored fat for fuel. Holy shit, exercise actually works. At 60 minutes, boom, your brain has a many fucking orgasm flooding with dopamine and serotonin."
+
+5. "If your bitch ass takes a cold shower every day for two weeks, here's what will happen. Days one to three, brutal. Your body goes into full shock. Behind the scenes, your blood vessels rapidly contract like your fat ass grip in a burger, which forces blood to your vital organs, triggering a fucking massive release of norepinephrine, boosting your alertness by 530%. Days four to seven, your body starts producing a shit ton of white blood cells strengthening your pathetic immune system."
+
+6. "Why the fuck is magnesium so important? Your dumbass body needs magnesium for over 300 biochemical reactions. But most people are walking around with a magnesium deficiency, feeling like absolute shit. Muscle cramps, anxiety, insomnia, headaches — your body is screaming for magnesium but you're ignoring it like it's your ex's texts. Leafy greens, nuts, seeds — eat that shit or suffer the consequences, dumbass."
+
+7. "What happens if you don't sleep for 72 hours? After 24 hours, your brain starts hallucinating like you're on a bad acid trip. Your reaction time is worse than a drunk driver. After 48 hours, your immune system completely tanks — white blood cells drop by 50%. After 72 hours, your brain starts shutting down, you can't form memories, you're seeing shit that isn't there. Sleep is not optional, you stupid bastard."
+
+8. "The truth about intermittent fasting. Your dumbass thinks skipping breakfast makes you healthy? Intermittent fasting is just eating in a shorter window, not some magical weight loss hack. If you eat 4000 calories in 8 hours, you're still getting fat, you dumbfuck. The only benefit is calorie awareness. Stop treating IF like it's religion, dumbass."
+
+9. "What does stress do to your body? Chronic stress is slowly killing you and you don't even know it. Cortisol floods your system, breaking down muscle, storing fat around your belly like a beer gut. Your immune system shuts down. You're getting sick all the time. Your relationships are dying. You're losing hair. All because you can't manage stress like an adult, you pathetic excuse for a human being."
+
+10. "The真相 about protein. You think eating 200 grams of protein a day makes you a gym god? Your dumbass kidneys are crying. Too much protein strains your kidneys, causes dehydration, and makes you constipated as hell. The average person needs 0.8-1 gram per kg, not this 2 grams per kg bullshit fitness influencers are pushing. Stop over-consuming like a pig, dumbass."
+`;
+
+const AI_PROMPT = `You are a health content creator known for viral TikTok/Reels/Shorts. Write scripts in the EXACT short, punchy style of these viral examples. USE HEAVY PROFANITY like the examples.
+
+${REFERENCE_SCRIPTS}
+
+⚠️ CRITICAL RULES:
+1. COPY THE SHORT, PUNCHY STYLE from examples - short sentences, no long paragraphs
+2. Stay 100% FOCUSED on ONE specific health topic only
+3. ONLY state facts you are CONFIDENT are scientifically accurate
+4. NEVER make up statistics or medical claims
+5. NO HEADINGS like **HOOK:** or **EXPLANATION:** - just write naturally like the examples!
+6. Write in one continuous flow, NOT structured sections
+7. NO DISCLAIMER - don't mention "consult your doctor" or medical advice
+
+WRITE LIKE THE EXAMPLES - raw, conversational, no formatting:
+- Short sentences. No long paragraphs.
+- No **HOOK:** or **EXPLANATION:** labels
+- Use profanity: bitch, fuck, shit, dumbass, ass, goddamn, pathetic
+- Dark humor, compare to gross stuff
+- Sound like you're ranting
+- 200-280 words MAX. Don't be wordy.
 
 TOPIC: {topic}
 CONTEXT: {context}
 
-IMPORTANT:
-- Keep it SHORT and SNAPPY for video
-- Pick ONE aspect of the topic and go deep, don't jump around
-- Use general phrases like "studies suggest", "research indicates", "health experts recommend"
-- If topic is too broad (like "cancer"), narrow down to specific type
-- Write 280-350 words. Each section should be concise and punchy.`;
+WRITE RAW - no sections, no disclaimer, no medical advice - just flow naturally like a viral TikTok!`;
 
 const TEMPLATES = {
   intro_patterns: [
@@ -45,9 +69,13 @@ const TEMPLATES = {
     'What the fuck does {topic} do to your bitch-ass body?',
     'How the fuck does {topic} work?',
     'If your dumb-ass {topic} every day, here\'s what happens.',
-    'What the actual fuck is {topic}?'
+    'What the actual fuck is {topic}?',
+    'Here\'s what happens when your pathetic ass gets {topic}',
+    'Why the fuck is {topic} so underrated?',
+    'If your lazy ass ignores {topic}, here\'s what\'ll happen'
   ],
   cta_patterns: [
+    'Follow me for more about your [fucked up/malfunctioning/broken-ass] body.',
     'Follow for more real health facts. No bullshit.',
     'Save this. Share this. Your friends need to know.',
     'Follow for more truth about your health.',
@@ -178,7 +206,57 @@ Follow for more science-based health info. Save this!`;
 
 async function generateScriptForTrend(trend, useAI = true) {
   const topic = trend.topic_name;
-  const context = trend.description || '';
+  
+  // Parse metadata for context
+  let context = '';
+  try {
+    if (trend.metadata) {
+      const meta = typeof trend.metadata === 'string' ? JSON.parse(trend.metadata) : trend.metadata;
+      
+      // YouTube: description + hashtags (NOT views/likes - those are just for filtering)
+      if (trend.source === 'youtube') {
+        if (meta.description) {
+          context += `Video description: ${meta.description.substring(0, 500)}. `;
+        }
+        if (meta.hashtags && meta.hashtags.length > 0) {
+          context += `Hashtags: ${meta.hashtags.join(', ')}. `;
+        }
+      }
+      
+      // Reddit: post body + health-related comments only
+      if (trend.source === 'reddit') {
+        if (meta.post_body) {
+          context += `Reddit post: ${meta.post_body.substring(0, 300)}. `;
+        }
+        // Only include comments that are health-related
+        if (meta.top_comments && meta.top_comments.length > 0) {
+          const healthComments = meta.top_comments.filter(c => {
+            const lower = c.toLowerCase();
+            return lower.includes('health') || lower.includes('vitamin') || lower.includes('diet') || 
+                   lower.includes('exercise') || lower.includes('sleep') || lower.includes('mental') ||
+                   lower.includes('weight') || lower.includes('nutrition') || lower.includes('supplement');
+          });
+          if (healthComments.length > 0) {
+            context += `Top health comments: ${healthComments.join(' | ').substring(0, 200)}. `;
+          }
+        }
+      }
+      
+      // News: title + article description
+      if (trend.source === 'news') {
+        context += `Article title: ${topic}. `;
+        if (meta.article_description) {
+          context += `Article summary: ${meta.article_description.substring(0, 500)}. `;
+        }
+      }
+    }
+  } catch (e) {
+    context = trend.description || '';
+  }
+  
+  if (!context) {
+    context = trend.description || '';
+  }
   
   let fullScript;
   

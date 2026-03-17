@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { initDB } = require('./database/db');
 const { initPipelineDB } = require('./pipeline/videoPipeline');
 const { loadConfig, getConfig } = require('./utils/configManager');
@@ -28,6 +29,11 @@ async function main() {
   switch (command) {
     case 'crawl':
       await runAllCrawlers();
+      break;
+
+    case 'tiktok':
+      const { crawlTikTok } = require('./crawlers/tiktokCrawler');
+      await crawlTikTok();
       break;
 
     case 'generate':
@@ -132,6 +138,7 @@ async function main() {
 
 📊 DATA:
   crawl         - Crawl all sources for trending topics
+  tiktok        - Crawl TikTok for viral health videos
   generate      - Generate scripts from today's trends (--no-ai for template only)
   report        - Generate daily report
 

@@ -34,6 +34,78 @@ function getTodayStats() {
   };
 }
 
+function getDailySummary() {
+  const date = new Date().toISOString().split('T')[0];
+  
+  const clusters = {
+    'weight': { name: 'Weight & Fat Loss', topics: [] },
+    'diet': { name: 'Diet & Nutrition', topics: [] },
+    'sleep': { name: 'Sleep & Rest', topics: [] },
+    'mental': { name: 'Mental Health', topics: [] },
+    'heart': { name: 'Heart Health', topics: [] },
+    'diabetes': { name: 'Diabetes & Blood Sugar', topics: [] },
+    'vitamin': { name: 'Vitamins & Supplements', topics: [] },
+    'gut': { name: 'Gut Health', topics: [] },
+    'exercise': { name: 'Exercise & Fitness', topics: [] },
+    'other': { name: 'Other Health Topics', topics: [] }
+  };
+  
+  const trends = all(`
+    SELECT topic_name, source, engagement_score, growth_rate, description
+    FROM trends
+    WHERE collected_date = ?
+    ORDER BY (engagement_score + growth_rate) DESC
+  `, [date]);
+  
+  const keywords = {
+    'weight': ['weight', 'fat', 'lose weight', 'belly', 'obesity', 'slim', 'burn'],
+    'diet': ['diet', 'nutrition', 'food', 'eating', 'calorie', 'macro', 'meal'],
+    'sleep': ['sleep', 'insomnia', 'tired', 'rest', 'fatigue', 'night'],
+    'mental': ['mental', 'anxiety', 'depression', 'stress', 'mood', 'brain'],
+    'heart': ['heart', 'cardio', 'blood pressure', 'cholesterol', 'artery'],
+    'diabetes': ['diabetes', 'blood sugar', 'glucose', 'insulin'],
+    'vitamin': ['vitamin', 'supplement', 'deficiency', 'nutrient', 'mineral'],
+    'gut': ['gut', 'digest', 'stomach', 'intestine', 'probiotic', 'bacteria'],
+    'exercise': ['exercise', 'workout', 'fitness', 'gym', 'cardio', 'muscle']
+  };
+  
+  for (const trend of trends) {
+    const lower = trend.topic_name.toLowerCase();
+    let cluster = 'other';
+    
+    for (const [key, words] of Object.entries(keywords)) {
+      for (const w of words) {
+        if (lower.includes(w)) {
+          cluster = key;
+          break;
+        }
+      }
+      if (cluster !== 'other') break;
+    }
+    
+    clusters[cluster].topics.push({
+      name: trend.topic_name,
+      source: trend.source,
+      score: trend.engagement_score + trend.growth_rate
+    });
+  }
+  
+  const result = Object.entries(clusters)
+    .filter(([k, v]) => v.topics.length > 0)
+    .map(([k, v]) => ({
+      category: v.name,
+      count: v.topics.length,
+      top_topic: v.topics[0]?.name || '',
+      sources: [...new Set(v.topics.map(t => t.source))]
+    }));
+  
+  return {
+    date,
+    total_trends: trends.length,
+    categories: result
+  };
+}
+
 function generateExecutiveReport() {
   const stats = getTodayStats();
   const now = new Date();

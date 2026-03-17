@@ -25,6 +25,7 @@ async function initDB() {
       engagement_score INTEGER DEFAULT 0,
       growth_rate REAL DEFAULT 0,
       description TEXT,
+      metadata TEXT,
       discovered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       collected_date DATE DEFAULT (date('now')),
       status TEXT DEFAULT 'new'
@@ -81,6 +82,21 @@ async function initDB() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tiktok_videos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      video_id TEXT UNIQUE,
+      video_url TEXT,
+      author TEXT,
+      views INTEGER DEFAULT 0,
+      likes INTEGER DEFAULT 0,
+      comments INTEGER DEFAULT 0,
+      shares INTEGER DEFAULT 0,
+      create_time INTEGER,
+      crawled_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   try {
     db.run(`ALTER TABLE scripts ADD COLUMN duration INTEGER DEFAULT 30`);
     db.run(`ALTER TABLE scripts ADD COLUMN notes TEXT`);
@@ -127,10 +143,45 @@ function get(sql, params = []) {
   return results[0] || null;
 }
 
+function saveTikTokVideos(videos) {
+  let saved = 0;
+  for (const video of videos) {
+    try {
+      db.run(`
+        INSERT OR IGNORE INTO tiktok_videos 
+        (video_id, video_url, author, views, likes, comments, shares, create_time)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [video.video_id, video.video_url, video.author, video.views, video.likes, video.comments, video.shares, video.create_time]);
+      saved++;
+    } catch (e) {
+      // Skip duplicates
+    }
+  }
+  saveDB();
+  console.log(`   💾 Saved ${saved} TikTok videos to database`);
+  return saved;
+}
+
+function getTikTokVideos(limit = 50) {
+  return all(`
+    SELECT * FROM tiktok_videos 
+    ORDER BY views DESC 
+    LIMIT ?
+  `, [limit]);
+}
+
+function getTikTokVideosCount() {
+  const result = all('SELECT COUNT(*) as cnt FROM tiktok_videos');
+  return result[0]?.cnt || 0;
+}
+
 module.exports = {
   initDB,
   run,
   all,
   get,
-  saveDB
+  saveDB,
+  saveTikTokVideos,
+  getTikTokVideos,
+  getTikTokVideosCount
 };

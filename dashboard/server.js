@@ -1,13 +1,15 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
 const express = require('express');
 const { initDB, run, all, get, saveDB } = require('../database/db');
 const { runAllCrawlers } = require('../crawlers/trendCrawler');
 const { generateAllScripts } = require('../scripts/scriptGenerator');
-const { getTodayStats, generateDailyReport, exportReportDocx } = require('../reports/dailyReport');
+const { getTodayStats, generateDailyReport } = require('../reports/dailyReport');
 const { getTrendAnalysis, saveTrendsToDatabase, processRedditPosts } = require('../crawlers/trendAnalyzer');
 const { sendTelegramReport } = require('../utils/notifications');
 const axios = require('axios');
 const fs = require('fs');
-const path = require('path');
 
 const app = express();
 const PORT = 3000;
@@ -17,7 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const REPORTS_DIR = path.join(__dirname, '..', 'reports', 'output');
 
-const REAL_SOURCES = ['news', 'reddit', 'google_trends'];
+const REAL_SOURCES = ['news', 'reddit', 'google_trends', 'youtube'];
 
 function getReportFiles() {
   try {
@@ -59,7 +61,7 @@ app.get('/api/stats', (req, res) => {
     FROM trends 
     WHERE source IN (${placeholders})
     ORDER BY engagement_score DESC 
-    LIMIT 5
+    LIMIT 10
   `, REAL_SOURCES);
   
   const lastCrawlResult = all(`SELECT MAX(discovered_at) as last FROM trends`);
@@ -68,6 +70,10 @@ app.get('/api/stats', (req, res) => {
   const lastRunResult = get(`SELECT value FROM settings WHERE key = 'last_run'`);
   const lastRun = lastRunResult?.value || null;
 
+  const tiktokTotal = all('SELECT COUNT(*) as cnt FROM tiktok_videos');
+  const tiktokViral = all('SELECT COUNT(*) as cnt FROM tiktok_videos WHERE views >= 50000');
+  const youtubeTotal = all("SELECT COUNT(*) as cnt FROM trends WHERE source = 'youtube'");
+
   res.json({
     totalTrends,
     realTrends,
@@ -75,22 +81,54 @@ app.get('/api/stats', (req, res) => {
     totalReports: reports.length,
     hotTopics: topTopics,
     lastCrawl,
-    lastRun
+    lastRun,
+    youtube: youtubeTotal[0]?.cnt || 0,
+    tiktok: tiktokTotal[0]?.cnt || 0,
+    tiktokViral: tiktokViral[0]?.cnt || 0
   });
+});
+
+app.get('/api/keywords', (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  const placeholders = REAL_SOURCES.map(() => '?').join(',');
+  
+  const trends = all(`
+    SELECT id, topic_name, source, engagement_score, growth_rate, description, metadata
+    FROM trends 
+    WHERE source IN (${placeholders}) 
+    ORDER BY (engagement_score + growth_rate) DESC 
+    LIMIT ?
+  `, [...REAL_SOURCES, limit]);
+  
+  res.json(trends);
 });
 
 app.get('/api/trends', (req, res) => {
   const source = req.query.source;
   const limit = parseInt(req.query.limit) || 50;
+  const dateFilter = req.query.date || 'all';
+  
+  let dateClause = '';
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  
+  if (dateFilter === 'today') {
+    dateClause = `AND collected_date = '${today}'`;
+  } else if (dateFilter === 'yesterday') {
+    dateClause = `AND collected_date = '${yesterday}'`;
+  } else if (dateFilter === 'week') {
+    dateClause = `AND collected_date >= '${weekAgo}'`;
+  }
   
   let sql, params;
   
   if (source && source !== 'all') {
-    sql = 'SELECT * FROM trends WHERE source = ? ORDER BY (engagement_score + growth_rate) DESC LIMIT ?';
+    sql = `SELECT * FROM trends WHERE source = ? ${dateClause} ORDER BY (engagement_score + growth_rate) DESC LIMIT ?`;
     params = [source, limit];
   } else {
     const placeholders = REAL_SOURCES.map(() => '?').join(',');
-    sql = `SELECT * FROM trends WHERE source IN (${placeholders}) ORDER BY (engagement_score + growth_rate) DESC LIMIT ?`;
+    sql = `SELECT * FROM trends WHERE source IN (${placeholders}) ${dateClause} ORDER BY (engagement_score + growth_rate) DESC LIMIT ?`;
     params = [...REAL_SOURCES, limit];
   }
   
@@ -100,12 +138,42 @@ app.get('/api/trends', (req, res) => {
 
 app.get('/api/scripts', (req, res) => {
   const limit = parseInt(req.query.limit) || 100;
+  const dateFilter = req.query.date || 'all';
+  
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  
+  let dateClause = '';
+  if (dateFilter === 'today') {
+    dateClause = `AND date(generated_at) = '${today}'`;
+  } else if (dateFilter === 'yesterday') {
+    dateClause = `AND date(generated_at) = '${yesterday}'`;
+  } else if (dateFilter === 'week') {
+    dateClause = `AND date(generated_at) >= '${weekAgo}'`;
+  }
+  
   const scripts = all(`
     SELECT * FROM scripts
+    WHERE 1=1 ${dateClause}
     ORDER BY id DESC
     LIMIT ?
   `, [limit]);
   res.json(scripts);
+});
+
+app.post('/api/cleanup', (req, res) => {
+  const days = parseInt(req.query.days) || 7;
+  const cutoffDate = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  
+  try {
+    run(`DELETE FROM trends WHERE collected_date < ?`, [cutoffDate]);
+    run(`DELETE FROM scripts WHERE date(generated_at) < ?`, [cutoffDate]);
+    
+    res.json({ success: true, message: `Deleted data older than ${days} days (before ${cutoffDate})` });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
 });
 
 app.delete('/api/scripts/:id', (req, res) => {
@@ -144,9 +212,42 @@ app.get('/api/reports', (req, res) => {
   res.json(getReportFiles());
 });
 
+app.get('/api/tiktok', (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  const videos = all(`
+    SELECT * FROM tiktok_videos 
+    ORDER BY views DESC 
+    LIMIT ?
+  `, [limit]);
+  res.json(videos);
+});
+
+app.get('/api/tiktok-stats', (req, res) => {
+  const total = all('SELECT COUNT(*) as cnt FROM tiktok_videos');
+  const viral = all('SELECT COUNT(*) as cnt FROM tiktok_videos WHERE views >= 50000');
+  const topViews = get('SELECT MAX(views) as max FROM tiktok_videos');
+  res.json({
+    total: total[0]?.cnt || 0,
+    viral: viral[0]?.cnt || 0,
+    topViews: topViews?.max || 0
+  });
+});
+
+app.get('/api/youtube-stats', (req, res) => {
+  const total = all("SELECT COUNT(*) as cnt FROM trends WHERE source = 'youtube'");
+  const recent = all("SELECT COUNT(*) as cnt FROM trends WHERE source = 'youtube' AND discovered_at >= datetime('now', '-24 hours')");
+  res.json({
+    total: total[0]?.cnt || 0,
+    last24h: recent[0]?.cnt || 0
+  });
+});
+
 app.get('/api/reports/:filename', (req, res) => {
   const filePath = path.join(REPORTS_DIR, req.params.filename);
   if (fs.existsSync(filePath)) {
+    if (req.params.filename.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html');
+    }
     res.sendFile(filePath);
   } else {
     res.status(404).json({ error: 'File not found' });
@@ -162,13 +263,157 @@ app.post('/api/crawl', async (req, res) => {
   }
 });
 
+app.post('/api/crawl/reddit', async (req, res) => {
+  try {
+    const { crawlReddit } = require('../crawlers/trendCrawler');
+    const { saveTrends } = require('../crawlers/trendCrawler');
+    await initDB();
+    
+    console.log('🔄 Crawling Reddit only...');
+    const reddit = await crawlReddit();
+    saveTrends(reddit);
+    
+    res.json({ success: true, source: 'reddit', count: reddit.length });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/crawl/news', async (req, res) => {
+  try {
+    const { crawlNews } = require('../crawlers/trendCrawler');
+    const { saveTrends } = require('../crawlers/trendCrawler');
+    await initDB();
+    
+    console.log('🔄 Crawling News only...');
+    const news = await crawlNews();
+    saveTrends(news);
+    
+    res.json({ success: true, source: 'news', count: news.length });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/crawl/youtube', async (req, res) => {
+  try {
+    const { crawlYouTube } = require('../crawlers/trendCrawler');
+    const { saveTrends } = require('../crawlers/trendCrawler');
+    await initDB();
+    
+    console.log('🔄 Crawling YouTube only...');
+    const youtube = await crawlYouTube();
+    saveTrends(youtube);
+    
+    res.json({ success: true, source: 'youtube', count: youtube.length });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/crawl/google', async (req, res) => {
+  try {
+    const { crawlGoogleTrends } = require('../crawlers/trendCrawler');
+    const { saveTrends } = require('../crawlers/trendCrawler');
+    await initDB();
+    
+    console.log('🔄 Crawling Google Trends only...');
+    const googleTrends = await crawlGoogleTrends();
+    saveTrends(googleTrends);
+    
+    res.json({ success: true, source: 'google_trends', count: googleTrends.length });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/crawl-only', async (req, res) => {
+  try {
+    const { crawlReddit, crawlNews, crawlGoogleTrends, crawlYouTube } = require('../crawlers/trendCrawler');
+    await initDB();
+    
+    console.log('🔄 Crawling data only...');
+    
+    const [reddit, news, googleTrends, youtube] = await Promise.all([
+      crawlReddit(),
+      crawlNews(),
+      crawlGoogleTrends(),
+      crawlYouTube()
+    ]);
+    
+    const allTrends = [...reddit, ...news, ...googleTrends, ...youtube];
+    const { saveTrends, deduplicateTrends } = require('../crawlers/trendCrawler');
+    saveTrends(allTrends);
+    
+    const countResult = all('SELECT COUNT(*) as cnt FROM trends WHERE collected_date = date("now")');
+    
+    res.json({ 
+      success: true, 
+      message: 'Crawl completed!',
+      stats: {
+        reddit: reddit.length,
+        news: news.length,
+        google: googleTrends.length,
+        youtube: youtube.length,
+        total: allTrends.length,
+        unique: countResult[0]?.cnt || 0
+      }
+    });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/scripts-only', async (req, res) => {
+  try {
+    await initDB();
+    const { generateAllScripts } = require('../scripts/scriptGenerator');
+    
+    console.log('🔄 Generating scripts only...');
+    
+    const scripts = await generateAllScripts(20, true);
+    
+    res.json({ 
+      success: true, 
+      message: `Generated ${scripts.length} scripts!`,
+      count: scripts.length
+    });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/report-only', async (req, res) => {
+  try {
+    const { exportReport } = require('../reports/dailyReport');
+    await initDB();
+    
+    console.log('🔄 Generating report only...');
+    
+    exportReport();
+    
+    res.json({ success: true, message: 'Report generated!' });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
 app.post('/api/generate-report', async (req, res) => {
   try {
-    const { exportReport, exportReportDocx } = require('../reports/dailyReport');
+    const { exportReport } = require('../reports/dailyReport');
     await initDB();
     exportReport();
-    await exportReportDocx();
     res.json({ success: true, message: 'Report generated!' });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/daily-summary', (req, res) => {
+  try {
+    const { getDailySummary } = require('../reports/dailyReport');
+    const summary = getDailySummary();
+    res.json(summary);
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
@@ -283,7 +528,6 @@ app.post('/api/run-full', async (req, res) => {
     await runAllCrawlers();
     await generateAllScripts(50, true);
     generateDailyReport();
-    await exportReportDocx();
     
     await sendTelegramReport();
     
